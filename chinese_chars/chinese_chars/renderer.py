@@ -6,7 +6,7 @@ Coordinates are Top-Left aligned — matching FPDF's native system.
 """
 
 from fpdf import FPDF
-from chinese_chars.models import Cell, CharacterData
+from .models import Cell, CharacterData
 
 # Maps our internal paper-size name → FPDF add_page() format string
 _PDF_PAGE_FORMAT = {
@@ -20,7 +20,7 @@ class PdfRenderer:
 
     def __init__(self) -> None:
         self.pdf = FPDF()
-        
+
         # Attempt to load a CJK-capable font. These are common Linux locations.
         _font_paths = [
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
@@ -39,17 +39,17 @@ class PdfRenderer:
 
     def render(self, workbook) -> bytes:
         """Convert the entire workbook into a PDF byte stream."""
-        
+
         # Convert internal paper size name → FPDF add_page format string
         fpdf_fmt = _PDF_PAGE_FORMAT.get(
-            workbook.config.paper_size, 
+            workbook.config.paper_size,
             "letter"  # fallback
         )
 
         for page in workbook.pages:
-            
+
             self.pdf.add_page(format=fpdf_fmt)
-            
+
             # If we have fonts, use them for the reference char
             if self.has_fonts:
                 self.pdf.set_font("Noto", size=36)
@@ -58,27 +58,27 @@ class PdfRenderer:
                 for cell_obj in row.cells:
                     if not hasattr(cell_obj, 'geometry') or cell_obj.geometry is None:
                         continue
-                    
+
                     g = cell_obj.geometry
-                    
+
                     # --- Draw Tian Ge Grid (Outer Box) ---
                     self.pdf.set_draw_color(200, 50, 50)
                     self.pdf.set_line_width(0.4)
-                    
+
                     self.pdf.rect(g.x, g.y, g.w, g.h)
-                    
+
                     # --- Draw Inner Cross-hairs (Dashed) ---
                     self.pdf.set_draw_color(255, 100, 100)
                     self.pdf.set_line_width(0.3)
-                    
+
                     mid_x = g.x + (g.w / 2)
                     mid_y = g.y + (g.h / 2)
-                    
+
                     # Apply dash pattern
                     self.pdf.set_dash_pattern(dash=4, gap=8)
                     self.pdf.line(mid_x, g.y, mid_x, g.y + g.h)
                     self.pdf.line(g.x, mid_y, g.x + g.w, mid_y)
-                    
+
                     # Reset dash pattern to solid
                     self.pdf.set_dash_pattern()
 
@@ -90,25 +90,25 @@ class PdfRenderer:
                             min_y = min(p.y for stroke in cd.strokes for p in stroke.points)
                             max_x = max(p.x for stroke in cd.strokes for p in stroke.points)
                             max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
-                            
+
                             w_range = (max_x - min_x) if (max_x - min_x) > 0 else 1
                             h_range = (max_y - min_y) if (max_y - min_y) > 0 else 1
-                    
+
                         self.pdf.set_draw_color(150, 150, 150) # Light gray
                         self.pdf.set_line_width(1.2)
-                        
+
                         for stroke in cd.strokes:
-                            prev_x_pdf = None 
+                            prev_x_pdf = None
                             prev_y_pdf = None
-                            
+
                             for p in stroke.points:
                                 # Map from source coordinates to grid geometry box (Top-Left aligned)
                                 nx = g.x + ((p.x - min_x) / w_range) * g.w
-                                ny = g.y + ((p.y - min_y) / h_range) * g.h 
-                                
+                                ny = g.y + ((p.y - min_y) / h_range) * g.h
+
                                 if prev_x_pdf is not None:
                                     self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
-                                
+
                                 prev_x_pdf = nx
                                 prev_y_pdf = ny
 
@@ -116,8 +116,8 @@ class PdfRenderer:
                     elif cell_obj.kind == 'reference' and self.has_fonts:
                         char = cell_obj.character_data.char if cell_obj.character_data else ""
                         if char:
-                            cx = g.x + (g.w / 4.5) 
-                            cy = g.y + (g.h / 6.0) 
+                            cx = g.x + (g.w / 4.5)
+                            cy = g.y + (g.h / 6.0)
                             self.pdf.text(cx, cy, char)
 
         return self.pdf.output()

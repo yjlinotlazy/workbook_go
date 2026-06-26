@@ -121,26 +121,28 @@ Input "一二三" produces a flat sequence of Cells via `generate_content()`. No
 
 ---
 
-# Milestone 6 — Layout Engine ✅
+# Milestone 6 — Layout Engine 🚧 (Current Focus)
 
 Goal
-Convert Cells into pages (`chinese_chars/layout/__init__.py`).
+Convert Cells into pages (`chinese_chars/layout.py`). **Currently investigating absolute coordinate mapping, dynamic cell sizing failures, and Tian Ge grid scaling.**
 
 Tasks
-* [x] Implement rows & Page grouping (`Page.rows`, `Page.width_cells`)
-* [x] Implement margins. *(Using standard 0.5" margin)*
-* [x] Use config for columns (`config.columns` passed in).
-* [x] Attach geometric metadata to each `Cell`.
+* [ ] Analyze `step_w` / `row_h` calculations. Ensure they scale inversely with `-c` columns correctly instead of remaining dynamically identical.
+* [ ] Fix row count overflow: investigate why only ~1.5 rows/elements visually fit in the generated PDF despite layout math suggesting otherwise.
+* [ ] Verify FPDF coordinate space alignment (Top-Left 0,0) vs layout point calculations to ensure Tian Ge bounding boxes don't clip or stretch when printed.
+* [ ] Validate `Page.rows` and `width_cells` accurately reflect physical constraints for both `us_letter` and `a4`.
+* [ ] Attach verified geometric metadata (`CellGeometry`) to each `Cell` without hardcoded fallback values.
 
-Acceptance Criteria
-Workbook pages are generated correctly based on paper size/layout logic. ✅
+Acceptance Criteria 🚧 *(Pending)*
+Workbook pages are generated correctly based on paper size/layout logic. Grid bounds physically match FPDF's native coordinate system so Tian Ge grids and cell positions print perfectly scaled.
 
 ---
 
-# Milestone 7 — PDF Renderer ✅
+# Milestone 7 — PDF Renderer ⏸️
 
 Goal
-Render Workbook to PDF (`chinese_chars/renderer/__init__.py`).
+Render Workbook to PDF (`chinese_chars/renderer.py`).
+Blocked By: **Milestone 6 layout math** must perfectly map physical points to the canvas before rendering logic (Tian Ge grids, progressive strokes) can be verified.
 
 Tasks
 * [x] Fix coordinate mapping math (Top-Left aligned, FPDF native coordinate space).
@@ -154,16 +156,16 @@ A printable PDF is generated matching layout bounds. Confirmed: Tian Ge grids, g
 
 ---
 
-# Milestone 8 — End-to-End Integration ✅
+# Milestone 8 — End-to-End Integration ⏸️
 
 Goal
-Connect every component inside `cli.py` (moved to project root).
+Connect every component inside `cli.py`.
+Blocked By: **Milestone 6 & 7** must function with verified grid/math logic before the pipeline can be fully wired up and validated.
 
 Pipeline
-`CLI (✔) → Generator (✔) → Layout (✔) → Renderer (✔) → PDF bytes → File Write`
+`CLI (✔) → Generator (✔) → Layout (⭐ WIP) → Renderer (⭐ Blocked) → PDF bytes → File Write`
 
-Acceptance Criteria
-Command `python cli.py <chars> -n <reps>` produces a valid worksheet PDF file with all components wired end-to-end.
+Acceptance Criteria *(Pending M6/M7 fixes)*
 
 ---
 

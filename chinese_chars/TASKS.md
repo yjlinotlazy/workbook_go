@@ -18,27 +18,33 @@ Given a `Config` with `chars="一二"`:
 
 ---
 
-# Milestone 6 — Layout Engine ✅
+# Milestone 6 — Layout Engine 🚧 (Current Focus)
 
-Goal: Convert Cells into pages with grid layout (`chinese_chars/layout/__init__.py`).
+**Status:** Work in Progress. Investigating grid math discrepancies, dynamic cell sizing failures, and FPDF coordinate mapping issues.
 
-## Tasks
+Goal: Convert Cells into pages with grid layout (`chinese_chars/layout.py`).
 
-- [x] Implement `layout_cells` function that groups flat cells into `Workbook`.
-- [x] Apply `Config.columns`, paper size rules, and margins.
-- [x] Return a structured `Workbook` containing Pages and Rows with geometric metadata (`CellGeometry`).
+## Active Tasks
+- [ ] Fix `step_w` / `row_h` logic to dynamically respect `-c` (columns) config so cells shrink correctly for denser grids.
+- [ ] Investigate the "only ~1.5 fit in each row" rendering bug — likely a points-to-pixels mismatch or margin calculation error in geometry generation.
+- [ ] Validate Tian Ge grid bounding boxes scale perfectly inside `CellGeometry` regardless of paper size (`us_letter` vs `a4`).
+- [ ] Ensure page breaks and cell counts match exactly what `Config` dictates (e.g., physical grid matches `-c` rows/columns).
+- [ ] Return a structured `Workbook` containing Pages and Rows with accurate geometric metadata (`CellGeometry`).
 
-## Acceptance Criteria ✅
+## Acceptance Criteria 🚧 *(Pending Fix)*
+- Cells are arranged correctly into rows/columns based on the `-c` config setting, shrinking dynamically to fit perfectly.
+- Grid sizing works flawlessly across paper sizes without visual overflow or excessive blank margins.
+- Tian Ge grids print at the correct physical scale relative to the cell bounds rather than stretching or clipping.
 
-- Cells are arranged correctly into rows/columns based on the `columns` config setting.
-- Page breaks occur when grid space is exhausted (e.g., 4x5 or 3x4 grids filling up).
-- Geometry (`CellGeometry`) is attached to each `Cell` for the renderer.
+### Blocked Milestones ⏸️
+- Milestone 7 (PDF Renderer) and Milestone 8 (E2E Integration) are effectively blocked until M6 grid math accurately aligns with physical rendering.
 
 ---
 
-# Milestone 7 — PDF Renderer ✅
+# Milestone 7 — PDF Renderer ⏸️
 
-Goal: Render Workbook to PDF (`chinese_chars/renderer/__init__.py`).
+Goal: Render Workbook to PDF (`chinese_chars/renderer.py`).
+Blocked By: Milestone 6 grid math must produce accurate, perfectly-scaled FPDF coordinates before rendering fixes can be verified.
 
 ## Tasks
 
@@ -58,9 +64,10 @@ Given a `Config` with `chars="一二三" -n 2`:
 
 ---
 
-# Milestone 8 — End-to-End Integration ✅
+# Milestone 8 — End-to-End Integration ⏸️
 
 Goal: Connect every component in `cli.py`. Pipeline: CLI → Generator → Layout → Renderer.
+Blocked By: Milestones 6 & 7 must function with verified layout math before end-to-end wireup can be validated.
 
 ## Tasks
 

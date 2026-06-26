@@ -4,9 +4,9 @@ Combines StrokeLoader and CharacterBuilder to produce practice content.
 No layout logic (pages/rows) lives here.
 """
 
-from chinese_chars.models import Cell, Config
-from chinese_chars.stroke import StrokeFileLoader
-from chinese_chars.builder import CharacterBuilder
+from .models import Cell, Config
+from .stroke import StrokeFileLoader
+from .builder import CharacterBuilder
 
 
 class WorkbookGenerator:
@@ -19,9 +19,9 @@ class WorkbookGenerator:
 
         for char in config.chars:
             data = loader.load(char)
-            
+
             # Build the row/sequence of cells for this character
             char_sequence = CharacterBuilder.build(data, config.repetitions)
             total_cells.extend(char_sequence)
-            
-        return total_cells 
+
+        return total_cells
