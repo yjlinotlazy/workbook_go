@@ -74,7 +74,7 @@ def test_parsing_custom_repetitions(capsys, monkeypatch):
     monkeypatch.setattr(r.PdfRenderer, 'render', dummy_render)
     monkeypatch.setattr(g.WorkbookGenerator, 'generate_content', lambda *args: [])
 
-    cli.main(argv=["一", "-n", "5"])
+    cli.main(argv=["一", "-r", "5"])
     captured = capsys.readouterr()
     assert "Repetitions: 5" in captured.out
 

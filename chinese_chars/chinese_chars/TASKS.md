@@ -26,8 +26,6 @@ Goal: Convert Cells into pages with grid layout (`chinese_chars/layout.py`). The
 - [x] Validate Tian Ge grid bounding boxes scale perfectly inside `CellGeometry` regardless of paper size (`us_letter` vs `a4`).
 - [x] Ensure page breaks and cell counts match exactly what `Config` dictates (physical grid matches `-c` rows/columns).
 - [x] Return a structured `Workbook` containing Pages and Rows with accurate geometric metadata (`CellGeometry`).
-- [x] **Fix `-r` vertical repetition:** Refactored `chinese_chars/generator.py` to natively vertically stack each character's practice block based on the `-r` flag. Previously, repetitions were appended horizontally as a flat stream or ignored.
-- [x] **Implemented flexible flow layout (`-n` / `-c`):** Characters now stream freely left-to-right across as many physical rows as they need to complete their practice sequence (reference + strokes). They naturally wrap when the grid limit is hit, matching standard workbook aesthetics.
 
 ## Acceptance Criteria ✅ *(Resolved)*
 - Cells are arranged correctly into rows/columns based on the `-c` config setting, shrinking dynamically to fit perfectly.
