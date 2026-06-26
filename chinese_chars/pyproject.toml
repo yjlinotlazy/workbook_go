@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chinese-chars"
+version = "0.1.0"
+description = "Printable handwriting worksheets for children."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "fpdf2>=3.0",
+]
+
+[project.scripts]
+chinese-chars = "cli:main"
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest",
+    "pre-commit",
+]
