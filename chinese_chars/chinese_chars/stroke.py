@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from ..models import CharacterData, Stroke, StrokePoint
+from chinese_chars.models import CharacterData, Stroke, StrokePoint
 
 
 #: Directory where valid, imported character data lives
