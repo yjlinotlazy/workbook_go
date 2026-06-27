@@ -15,6 +15,10 @@ _PDF_PAGE_FORMAT = {
 }
 
 
+W_RANGE= 800*2
+H_RANGE = 500*2
+
+
 class PdfRenderer:
     """Generates a PDF workbook with handwriting practice grids."""
 
@@ -87,9 +91,6 @@ class PdfRenderer:
                             max_x = max(p.x for stroke in cd.strokes for p in stroke.points)
                             max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
 
-                            w_range = (max_x - min_x) if (max_x - min_x) > 0 else 1
-                            h_range = (max_y - min_y) if (max_y - min_y) > 0 else 1
-
                         self.pdf.set_draw_color(150, 150, 150) # Light gray
                         self.pdf.set_line_width(1.2)
 
@@ -98,10 +99,11 @@ class PdfRenderer:
                             prev_y_pdf = None
 
                             for p in stroke.points:
+                                print(g.x, g.y, p.x - min_x, max_y - p.y)
                                 # Source coords (Bottom-Left origin) → PDF coords (Top-Left origin):
                                 # X unchanged, Y flipped.
-                                nx = g.x + ((p.x - min_x) / w_range) * g.w
-                                ny = g.y + ((max_y - p.y) / h_range) * g.h
+                                nx = g.x + ((p.x - min_x) / W_RANGE) * g.w + g.w * 0.25
+                                ny = g.y + ((max_y - p.y) / H_RANGE) * g.h + g.h * 0.2
 
                                 if prev_x_pdf is not None:
                                     self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
