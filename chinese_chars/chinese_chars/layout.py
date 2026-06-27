@@ -93,7 +93,7 @@ class LayoutEngine:
         gap = 2  # mm gap between adjacent Tian Ge boxes
 
         rows: list[Row] = []
-        row_idx = page_start_row  # start from page_offset for correct y-coord
+        row_idx = page_start_row  # start from page_offset for correct coord
 
         for chunk_start in range(0, len(flat_cells), cols):
             batch = flat_cells[chunk_start : chunk_start + cols]
@@ -103,12 +103,12 @@ class LayoutEngine:
             row_cells: list[Cell] = []
 
             for col_idx, raw_cell in enumerate(batch):
-                x_start = self.margin + (chunk_start // cols + col_idx) * (step_w + gap)
-                y_base = self.paper_h - (self.margin + (row_idx + 1) * step_w)
+                x = self.margin + (col_idx) * step_w
+                y = self.margin + (row_idx) * (step_w + gap)
 
                 new_geo = CellGeometry(
-                    x=x_start,
-                    y=y_base,
+                    x=x,
+                    y=y,
                     w=step_w - 4,   # 2mm padding on each side for Tian Ge box
                     h=step_w - 4,
                 )
@@ -119,7 +119,6 @@ class LayoutEngine:
                     stroke_index=raw_cell.stroke_index,
                     geometry=new_geo,
                 ))
-
             rows.append(Row(index=row_idx, cells=tuple(row_cells)))
             row_idx += 1
 

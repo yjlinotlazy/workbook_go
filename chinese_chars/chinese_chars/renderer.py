@@ -61,7 +61,6 @@ class PdfRenderer:
                         continue
 
                     g = cell_obj.geometry
-                    print(cell_obj.kind, g.x, g.y, g.w, g.h)
 
                     # --- Draw Tian Ge Grid (Outer Box) ---
                     self.pdf.set_draw_color(200, 50, 50)
