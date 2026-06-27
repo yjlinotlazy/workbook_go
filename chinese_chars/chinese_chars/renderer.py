@@ -86,23 +86,30 @@ class PdfRenderer:
                     if cell_obj.kind.startswith('stroke-') and cell_obj.character_data:
                         cd = cell_obj.character_data
                         if cd.strokes:
-                            min_x = min(p.x for stroke in cd.strokes for p in stroke.points)
-                            min_y = min(p.y for stroke in cd.strokes for p in stroke.points)
-                            max_x = max(p.x for stroke in cd.strokes for p in stroke.points)
-                            max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
+                            # Use full_bbox if available (computed by builder from all strokes)
+                            # so every progressive cell scales consistently.
+                            if cd.full_bbox:
+                                min_x, min_y, max_x, max_y = cd.full_bbox
+                            else:
+                                min_x = min(p.x for stroke in cd.strokes for p in stroke.points)
+                                min_y = min(p.y for stroke in cd.strokes for p in stroke.points)
+                                max_x = max(p.x for stroke in cd.strokes for p in stroke.points)
+                                max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
 
                         self.pdf.set_draw_color(150, 150, 150) # Light gray
                         self.pdf.set_line_width(0.6)
+
+                        range_x = (max_x - min_x) if (max_x > min_x) else 1
+                        range_y = (max_y - min_y) if (max_y > min_y) else 1
 
                         for stroke in cd.strokes:
                             prev_x_pdf = None
                             prev_y_pdf = None
 
                             for p in stroke.points:
-                                # Source coords (Bottom-Left origin) → PDF coords (Top-Left origin):
-                                # X unchanged, Y flipped.
-                                nx = g.x + ((p.x - min_x) / W_RANGE) * g.w + g.w * 0.2
-                                ny = g.y + ((max_y - p.y) / H_RANGE) * g.h + g.h * 0.2
+                                # Normalize using actual stroke bbox so it fills the cell correctly.
+                                nx = g.x + ((p.x - min_x) / range_x) * (g.w * 0.9) + (g.w * 0.05)
+                                ny = g.y + ((max_y - p.y) / range_y) * (g.h * 0.9) + (g.h * 0.05)
 
                                 if prev_x_pdf is not None:
                                     self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)

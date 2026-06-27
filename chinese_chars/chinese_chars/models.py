@@ -46,6 +46,8 @@ class CharacterData:
 
     char: str  # the Unicode character, e.g. "永"
     strokes: list[Stroke]  # ordered strokes
+    full_bbox: tuple[float, float, float, float] | None = None  # (min_x, min_y, max_x, max_y) across ALL strokes — used for consistent stroke rendering
+    full_bbox: tuple[float, float, float, float] | None = None  # (min_x, min_y, max_x, max_y) all strokes together; used for consistent stroke rendering
 
 
 @dataclass(frozen=True)

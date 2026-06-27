@@ -28,12 +28,25 @@ class CharacterBuilder:
     @staticmethod
     def _one_char(char_data: CharacterData) -> list[Cell]:
         cells: list[Cell] = []
-        total_strokes = len(char_data.strokes)  
+        total_strokes = len(char_data.strokes)
+
+        # Compute full character bbox (all strokes combined) — used for consistent stroke normalization
+        all_pts: list[StrokePoint] = []
+        for s in char_data.strokes:
+            all_pts.extend(s.points)
+        if all_pts:
+            min_x = min(p.x for p in all_pts)
+            min_y = min(p.y for p in all_pts)
+            max_x = max(p.x for p in all_pts)
+            max_y = max(p.y for p in all_pts)
+            full_bbox: tuple[float, float, float, float] | None = (min_x, min_y, max_x, max_y)
+        else:
+            full_bbox = None
 
         # 1. Reference Cell (black, all strokes visible)
         ref_cell = Cell(
             kind="reference",
-            character_data=char_data,  
+            character_data=char_data,
             stroke_index=None
         )
         cells.append(ref_cell)
@@ -41,7 +54,12 @@ class CharacterBuilder:
         # 2. Progressive Stroke Cells 
         for i in range(1, total_strokes + 1):
             cumulative_points: list[Stroke] = char_data.strokes[:i]
-            layer_data = CharacterData(char=" ", strokes=cumulative_points)  
+            # Embed full_bbox so renderer can normalize all progressive cells consistently
+            layer_data = CharacterData(
+                char=" ", 
+                strokes=cumulative_points,
+                full_bbox=full_bbox
+            )
             
             stroke_cell = Cell(
                 kind=f"stroke-{i}",
