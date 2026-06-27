@@ -36,11 +36,31 @@ class StrokeFileLoader:
 
     def has_char(self, char: str) -> bool:
         """Check if internal storage contains data for `char`."""
-        return self._get_filepath(char).exists()
+        filepath = self._get_filepath(char)
+        if filepath.exists():
+            return True
+        # Fallback: check generated/characters subdirectory
+        fallback = INTERNAL_STORAGE_DIR / "generated" / "characters" / f"{char}.json"
+        return fallback.exists()
 
     def _get_filepath(self, char: str) -> Path:
-        """Get the path to the JSON file corresponding to `char`."""
-        return self.storage_dir / f"{char}.json"
+        """Get the path to the JSON file for `char`.
+        
+        Search order:
+          1. Custom storage_dir (if provided)
+          2. generated/characters/<char>.json (new importer output with medians)
+          3. INTERNAL_STORAGE_DIR/<char>.json (legacy, fallback)
+        """
+        if self.storage_dir != INTERNAL_STORAGE_DIR:
+            return self.storage_dir / f"{char}.json"
+        
+        # Prefer generated/characters (new importer with medians) over legacy
+        generated = INTERNAL_STORAGE_DIR / "generated" / "characters" / f"{char}.json"
+        if generated.exists():
+            return generated
+        
+        legacy = INTERNAL_STORAGE_DIR / f"{char}.json"
+        return legacy
 
     def _parse_internal_json(self, data: Dict[str, Any]) -> CharacterData:
         """Convert raw JSON dictionary into a `CharacterData` model."""
@@ -64,26 +84,32 @@ class StrokeFileLoader:
     def _parse_stroke_entry(self, raw_item: Any) -> Stroke | None:
         """
         Parses a single stroke entry from internal JSON.
+        
+        Priority: if 'medians' (centerline) field exists, use it.
+        Otherwise fall back to the thick filled 'path' as-is.
         Internal path format is flat coordinates: [x1, y1, x2, y2, ...].
         """
         if not isinstance(raw_item, dict):
             return None  # Skip malformed items gracefully
 
-        path_data = raw_item.get("path")
-
+        entry_path = raw_item.get("path")
+        
         if "order" not in raw_item or "path" not in raw_item:
             raise ValueError(f"Invalid stroke entry missing 'order' or 'path': {raw_item}")
 
-        if not isinstance(path_data, list):
-            raise ValueError(f"'path' must be a list of numbers. Found {type(path_data)}")
+        if not isinstance(entry_path, list):
+            raise ValueError(f"'path' must be a list of numbers. Found {type(entry_path)}")
+
+        # Prefer medians (centerline) over thick filled contour for cleaner rendering
+        use_coords = raw_item.get("medians", entry_path)
 
         points: List[StrokePoint] = []
 
         # Ensure all path coordinates are float-compatible.
         try:
-            flat_points: List[float] = [float(p) for p in path_data]
+            flat_points: List[float] = [float(p) for p in use_coords]
         except (ValueError, TypeError):
-            raise ValueError(f"'path' must contain numeric coordinates. Found {path_data}")
+            raise ValueError(f"'path' must contain numeric coordinates. Found {use_coords}")
 
         n_coord_pairs = len(flat_points) // 2
         if len(flat_points) % 2 != 0:

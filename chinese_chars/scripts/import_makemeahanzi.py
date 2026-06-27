@@ -25,6 +25,18 @@ def parse_svg_path(path_str: str) -> list[float]:
     return [float(c) for c in clean_path.split() if c.strip().lstrip('-').isdigit() or (c.startswith('-') and c[1:].lstrip('.').isdigit())]
 
 
+def parse_median_coords(coords_list: list[list[float]]) -> list[float]:
+    """
+    Convert MakeMeAHanzi medians [[x1,y1],[x2,y2],...] into flat coords [x1,y1,x2,y2,...].
+    """
+    flat = []
+    for pair in coords_list:
+        if len(pair) >= 2:
+            flat.append(float(pair[0]))
+            flat.append(float(pair[1]))
+    return flat
+
+
 def import_data() -> None:
     print(f"📥 正在读取原始数据：{RAW_DATA_PATH}")
     
@@ -48,6 +60,7 @@ def import_data() -> None:
                 
                 char = obj.get("character")
                 strokes_data = obj.get("strokes", [])
+                medians_data = obj.get("medians", [])  # centerline data
                 
                 if not char or not strokes_data:
                     sys.stderr.write(f"⚠️ 跳过第 {line_num} 行：缺失字符或笔画数据\n")
@@ -58,11 +71,16 @@ def import_data() -> None:
                 internal_strokes = []
                 for order_idx, svg_path in enumerate(strokes_data):
                     flat_points = parse_svg_path(svg_path)
-                    if len(flat_points) >= 4: # Must have at least one segment (2 points)
-                        internal_strokes.append({
-                            "order": order_idx + 1,
-                            "path": [round(p, 2) for p in flat_points]
-                        })
+                    entry: dict = {
+                        "order": order_idx + 1,
+                        "path": [round(p, 2) for p in flat_points]
+                    }
+                    # Also store medians (centerline) if available
+                    if medians_data and order_idx < len(medians_data):
+                        median_coords = parse_median_coords(medians_data[order_idx])
+                        if len(median_coords) >= 4:
+                            entry["medians"] = [round(c, 2) for c in median_coords]
+                    internal_strokes.append(entry)
                 
                 # Save to the target folder using the internal JSON schema
                 output_file = OUTPUT_DIR / f"{char}.json"
