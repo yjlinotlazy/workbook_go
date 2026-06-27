@@ -49,8 +49,8 @@ class LayoutEngine:
         row_h = step_w
 
         # How many full rows fit on the page given dynamic cell size and margins
-        available_height = self.paper_h - (2 * self.margin)
-        self.rows_per_page = int(available_height / row_h)
+        self.available_height = self.paper_h - (2 * self.margin)
+        self.rows_per_page = int(self.available_height / row_h) - 1
         self.cell_size_mm = step_w
 
     def pad_chars(self, char_blocks: list[list[Cell]]) -> list[list[Cell]]:
@@ -108,7 +108,7 @@ class LayoutEngine:
 
                 new_geo = CellGeometry(
                     x=x,
-                    y=y,
+                    y=y % self.available_height,
                     w=step_w - 4,   # 2mm padding on each side for Tian Ge box
                     h=step_w - 4,
                 )

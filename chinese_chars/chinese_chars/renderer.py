@@ -15,7 +15,7 @@ _PDF_PAGE_FORMAT = {
 }
 
 
-W_RANGE= 800*2.3
+W_RANGE= 700*2.0
 H_RANGE = 500*2.3
 
 
@@ -92,7 +92,7 @@ class PdfRenderer:
                             max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
 
                         self.pdf.set_draw_color(150, 150, 150) # Light gray
-                        self.pdf.set_line_width(0.5)
+                        self.pdf.set_line_width(0.6)
 
                         for stroke in cd.strokes:
                             prev_x_pdf = None
@@ -101,7 +101,7 @@ class PdfRenderer:
                             for p in stroke.points:
                                 # Source coords (Bottom-Left origin) → PDF coords (Top-Left origin):
                                 # X unchanged, Y flipped.
-                                nx = g.x + ((p.x - min_x) / W_RANGE) * g.w + g.w * 0.25
+                                nx = g.x + ((p.x - min_x) / W_RANGE) * g.w + g.w * 0.2
                                 ny = g.y + ((max_y - p.y) / H_RANGE) * g.h + g.h * 0.2
 
                                 if prev_x_pdf is not None:
