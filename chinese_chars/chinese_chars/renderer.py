@@ -98,9 +98,10 @@ class PdfRenderer:
                             prev_y_pdf = None
 
                             for p in stroke.points:
-                                # Map from source coordinates to grid geometry box (Top-Left aligned)
+                                # Source coords (Bottom-Left origin) → PDF coords (Top-Left origin):
+                                # X unchanged, Y flipped.
                                 nx = g.x + ((p.x - min_x) / w_range) * g.w
-                                ny = g.y + ((p.y - min_y) / h_range) * g.h
+                                ny = g.y + ((max_y - p.y) / h_range) * g.h
 
                                 if prev_x_pdf is not None:
                                     self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
