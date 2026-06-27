@@ -86,8 +86,7 @@ class PdfRenderer:
                     if cell_obj.kind.startswith('stroke-') and cell_obj.character_data:
                         cd = cell_obj.character_data
                         if cd.strokes:
-                            # Use full_bbox if available (computed by builder from all strokes)
-                            # so every progressive cell scales consistently.
+                            # Use full_bbox for consistent scaling across all progressive strokes
                             if cd.full_bbox:
                                 min_x, min_y, max_x, max_y = cd.full_bbox
                             else:
@@ -99,17 +98,29 @@ class PdfRenderer:
                         self.pdf.set_draw_color(150, 150, 150) # Light gray
                         self.pdf.set_line_width(0.6)
 
-                        range_x = (max_x - min_x) if (max_x > min_x) else 1
-                        range_y = (max_y - min_y) if (max_y > min_y) else 1
+                        # Compute full bounding box dimensions
+                        full_bbox_w = (max_x - min_x) if (max_x > min_x) else 1
+                        full_bbox_h = (max_y - min_y) if (max_y > min_y) else 1
+
+                        # Usable area in cell (90% of geometry, with 5% padding)
+                        usable_w = g.w * 0.9
+                        usable_h = g.h * 0.9
+
+                        # Letterbox scale: preserve aspect ratio, fit within usable area
+                        final_scale = min(usable_w / full_bbox_w, usable_h / full_bbox_h) if (full_bbox_w > 0 and full_bbox_h > 0) else (usable_w / full_bbox_w)
+
+                        content_w = full_bbox_w * final_scale
+                        content_h = full_bbox_h * final_scale
+                        offset_x = ((usable_w - content_w) / 2)
+                        offset_y = ((usable_h - content_h) / 2)
 
                         for stroke in cd.strokes:
                             prev_x_pdf = None
                             prev_y_pdf = None
 
                             for p in stroke.points:
-                                # Normalize using actual stroke bbox so it fills the cell correctly.
-                                nx = g.x + ((p.x - min_x) / range_x) * (g.w * 0.9) + (g.w * 0.05)
-                                ny = g.y + ((max_y - p.y) / range_y) * (g.h * 0.9) + (g.h * 0.05)
+                                nx = g.x + (g.w * 0.05) + offset_x + ((p.x - min_x) * final_scale)
+                                ny = g.y + (g.h * 0.05) + offset_y + ((max_y - p.y) * final_scale)
 
                                 if prev_x_pdf is not None:
                                     self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
