@@ -22,20 +22,16 @@ class PdfRenderer:
         self.pdf = FPDF()
 
         # Attempt to load a CJK-capable font. These are common Linux locations.
-        _font_paths = [
-            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-        ]
-        for _fp in _font_paths:
+        font_paths = {
+            "Noto": "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "Uming": "/usr/share/fonts/TTF/uming.ttc",
+            "Ukai": "/usr/share/fonts/TTF/ukai.ttc"
+        }
+        for fname, fp in font_paths.items():
             try:
-                self.pdf.add_font("Noto", "", _fp)
-                self.has_fonts = True
-                break
+                self.pdf.add_font(fname, fname=fp)
             except FileNotFoundError:
-                continue
-        else:
-            self.has_fonts = False
+                print("Fail to add", fname)
 
     def render(self, workbook) -> bytes:
         """Convert the entire workbook into a PDF byte stream."""
@@ -51,9 +47,7 @@ class PdfRenderer:
             self.pdf.add_page(format=fpdf_fmt)
             self.pdf.set_text_color(0, 0, 0)
 
-            # If we have fonts, use them for the reference char
-            if self.has_fonts:
-                self.pdf.set_font("Noto", size=40)
+
 
             for row in page.rows:
                 for cell_obj in row.cells:
@@ -115,11 +109,16 @@ class PdfRenderer:
                                 prev_y_pdf = ny
 
                     # --- Draw Reference Character (Black) ---
-                    elif cell_obj.kind == 'reference' and self.has_fonts:
+                    elif cell_obj.kind == 'reference':
                         char = cell_obj.character_data.char if cell_obj.character_data else ""
                         if char:
-                            cx = g.x + (g.w / 4.5)
-                            cy = g.y + (g.h / 6.0)
+                            # Dynamically scale font size to match current grid density
+                            dyn_font_size = int(g.h * 2)
+                            self.pdf.set_font("Ukai", size=dyn_font_size)
+
+                            cx = g.x + (g.w / 7)
+                            # FPDF Y is baseline position; adjust for font height so char centers in box
+                            cy = g.y + (g.h * 0.5) + (dyn_font_size / 6)
                             self.pdf.text(cx, cy, char)
 
         return self.pdf.output()
