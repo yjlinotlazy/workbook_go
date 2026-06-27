@@ -49,10 +49,11 @@ class PdfRenderer:
         for page in workbook.pages:
 
             self.pdf.add_page(format=fpdf_fmt)
+            self.pdf.set_text_color(0, 0, 0)
 
             # If we have fonts, use them for the reference char
             if self.has_fonts:
-                self.pdf.set_font("Noto", size=36)
+                self.pdf.set_font("Noto", size=40)
 
             for row in page.rows:
                 for cell_obj in row.cells:
