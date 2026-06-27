@@ -30,7 +30,6 @@ def main(*, argv: Sequence[str] | None = None) -> None:
     
     cfg = Config(
         chars=chars,
-        repetitions=args.repetitions,
         columns=args.columns,
         paper_size=paper_size,
         font_size=DEFAULT_FONT_SIZE,
@@ -38,7 +37,6 @@ def main(*, argv: Sequence[str] | None = None) -> None:
 
     # 2. Pipeline Execution
     print(f"Characters : {cfg.chars}")
-    print(f"Repetitions: {cfg.repetitions}")
     
     content_cells = WorkbookGenerator().generate_content(cfg)
     structured_workbook = layout_cells(cfg, content_cells)
@@ -61,7 +59,7 @@ def _build_parser() -> argparse.ArgumentParser:
     
     parser.add_argument("chars", help="Characters to practice (e.g. '一二三')")
     parser.add_argument("-n", "-c", "--density", dest='columns', type=int, default=DEFAULT_COLUMNS, help="每行格子数 (default: 5)")
-    parser.add_argument("-r", "--reps", dest='repetitions', type=int, default=3, help="每字复写几行")
+
     parser.add_argument("-p", "--paper", default="us_letter", choices=PAPER_SIZE_OPTIONS, metavar="SIZE")
     
     output_group = parser.add_mutually_exclusive_group()

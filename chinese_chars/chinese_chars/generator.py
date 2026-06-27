@@ -14,21 +14,11 @@ class WorkbookGenerator:
 
     def generate_content(self, config: Config) -> list[list[Cell]]:
         """
-        Generate a flat list of all practice cells from configuration.
-
-        Characters are simply streamed left-to-right, one after another. They will
-        span exactly as many rows as their content requires without any rigid
-        column-padding or forced horizontal alignment. The final layout will be
-        handled by the layout module.
+        Generate grouped practice cells: one inner list per character.
+        Layout handles blank-cell insertion and row/column padding.
         """
         loader = StrokeFileLoader()
-        total_cells: list[Cell] = []
+        char_data_list = [loader.load(char) for char in config.chars]
 
-        for char in config.chars:
-            data = loader.load(char)
-
-            # Build the full sequence: Reference + Strokes + `-r` blank practice cells
-            sequence = CharacterBuilder.build(data)
-            total_cells.append(sequence)
-
-        return total_cells
+        # Build all characters at once — CharacterBuilder.build iterates internally
+        return CharacterBuilder.build(char_data_list)

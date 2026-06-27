@@ -57,9 +57,11 @@ class PdfRenderer:
             for row in page.rows:
                 for cell_obj in row.cells:
                     if not hasattr(cell_obj, 'geometry') or cell_obj.geometry is None:
+                        print("invalid cell")
                         continue
 
                     g = cell_obj.geometry
+                    print(cell_obj.kind, g.x, g.y, g.w, g.h)
 
                     # --- Draw Tian Ge Grid (Outer Box) ---
                     self.pdf.set_draw_color(200, 50, 50)

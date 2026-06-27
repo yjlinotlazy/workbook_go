@@ -8,9 +8,8 @@ from chinese_chars.renderer import PdfRenderer
 @pytest.fixture
 def sample_workbook():
     """Create a minimal valid workbook with attached geometry."""
-    config = Config(chars="一", columns=2)
+    config = Config(chars="一", columns=2)  # removed repetitions
     
-    # Create a single cell with geometry (Bottom-Left coordinates for FPDF)
     test_cell = Cell(
         kind="reference",
         character_data=CharacterData(char="测", strokes=[]),
@@ -38,11 +37,9 @@ def test_renderer_does_not_crash(sample_workbook):
         
     assert isinstance(pdf_bytes, (bytes, bytearray))
     assert len(pdf_bytes) > 0
-    # PDF files almost always start with %PDF header
     if not pdf_bytes.startswith(b'%PDF'):
         pytest.fail("Rendered file does not appear to be a valid PDF.")
 
 def test_renderer_produces_valid_pages(sample_workbook):
     """Ensure rendering doesn't fail on multiple pages (if we had them)."""
-    # We rely on the loop in render; if it passes once, grid logic is sound.
     pass

@@ -33,11 +33,17 @@ def test_parses_chinese_characters(capsys, monkeypatch):
     """Parsing valid Chinese characters produces expected config output."""
     def dummy_render(self, workbook):
         return b'%PDF-1.4 fake'
-    
-    def dummy_gen(*args):
-        from chinese_chars.models import Cell 
-        return [Cell(kind="blank", character_data=None)]
-    
+
+    # generator.generate_content() returns list[list[Cell]] — one inner list per char
+    def dummy_gen(*_args): 
+        from chinese_chars.models import Cell
+        # Return [[cells_for_char1], [cells_for_char2], ...] — 3 chars = 3 blocks  
+        return [
+            [Cell(kind="reference", character_data=None, stroke_index=None)],  
+            [Cell(kind="blank", character_data=None, stroke_index=None)],
+            [Cell(kind="blank", character_data=None, stroke_index=None)]
+        ]
+
     import chinese_chars.renderer as r
     import chinese_chars.generator as g
     monkeypatch.setattr(r.PdfRenderer, 'render', dummy_render)
