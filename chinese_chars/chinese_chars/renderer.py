@@ -1,7 +1,7 @@
 """Renderer (Milestone 7).
 
 Converts the structured Workbook data into PDF pages using FPDFv2.
-Draws Tian Ge grids, stroke paths, and reference characters.
+Draws Tian Ge grids, stroke paths (progressive + complete), and reference characters.
 Coordinates are Top-Left aligned — matching FPDF's native system.
 """
 
@@ -36,6 +36,59 @@ class PdfRenderer:
                 self.pdf.add_font(fname, fname=fp)
             except FileNotFoundError:
                 print("Fail to add", fname)
+
+    def _draw_strokes_in_cell(self, cell_obj, g) -> bool:
+        """Draw stroke paths for progressive or complete cells. Returns True if drawn."""
+        cd = cell_obj.character_data
+        if not cd or not cd.strokes:
+            return False
+
+        self.pdf.set_draw_color(150, 150, 150)  # Light gray
+        self.pdf.set_line_width(0.6)
+
+        # Use full_bbox for consistent scaling across all cells
+        if cd.full_bbox:
+            min_x, min_y, max_x, max_y = cd.full_bbox
+        else:
+            all_pts = [p for stroke in cd.strokes for p in stroke.points]
+            if not all_pts:
+                return False
+            min_x = min(p.x for p in all_pts)
+            min_y = min(p.y for p in all_pts)
+            max_x = max(p.x for p in all_pts)
+            max_y = max(p.y for p in all_pts)
+
+        # Compute full bounding box dimensions
+        full_bbox_w = (max_x - min_x) if (max_x > min_x) else 1
+        full_bbox_h = (max_y - min_y) if (max_y > min_y) else 1
+
+        # Usable area in cell (90% of geometry, with 5% padding)
+        usable_w = g.w * 0.9
+        usable_h = g.h * 0.9
+
+        # Letterbox scale: preserve aspect ratio, fit within usable area
+        final_scale = min(usable_w / full_bbox_w, usable_h / full_bbox_h) if (full_bbox_w > 0 and full_bbox_h > 0) else (usable_w / full_bbox_w)
+
+        content_w = full_bbox_w * final_scale
+        content_h = full_bbox_h * final_scale
+        offset_x = ((usable_w - content_w) / 2)
+        offset_y = ((usable_h - content_h) / 2)
+
+        for stroke in cd.strokes:
+            prev_x_pdf = None
+            prev_y_pdf = None
+
+            for p in stroke.points:
+                nx = g.x + (g.w * 0.05) + offset_x + ((p.x - min_x) * final_scale)
+                ny = g.y + (g.h * 0.05) + offset_y + ((max_y - p.y) * final_scale)
+
+                if prev_x_pdf is not None:
+                    self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
+
+                prev_x_pdf = nx
+                prev_y_pdf = ny
+
+        return True
 
     def render(self, workbook) -> bytes:
         """Convert the entire workbook into a PDF byte stream."""
@@ -82,51 +135,9 @@ class PdfRenderer:
                     # Reset dash pattern to solid
                     self.pdf.set_dash_pattern()
 
-                    # --- Draw Progressive Strokes (Gray overlay) ---
-                    if cell_obj.kind.startswith('stroke-') and cell_obj.character_data:
-                        cd = cell_obj.character_data
-                        if cd.strokes:
-                            # Use full_bbox for consistent scaling across all progressive strokes
-                            if cd.full_bbox:
-                                min_x, min_y, max_x, max_y = cd.full_bbox
-                            else:
-                                min_x = min(p.x for stroke in cd.strokes for p in stroke.points)
-                                min_y = min(p.y for stroke in cd.strokes for p in stroke.points)
-                                max_x = max(p.x for stroke in cd.strokes for p in stroke.points)
-                                max_y = max(p.y for stroke in cd.strokes for p in stroke.points)
-
-                        self.pdf.set_draw_color(150, 150, 150) # Light gray
-                        self.pdf.set_line_width(0.6)
-
-                        # Compute full bounding box dimensions
-                        full_bbox_w = (max_x - min_x) if (max_x > min_x) else 1
-                        full_bbox_h = (max_y - min_y) if (max_y > min_y) else 1
-
-                        # Usable area in cell (90% of geometry, with 5% padding)
-                        usable_w = g.w * 0.9
-                        usable_h = g.h * 0.9
-
-                        # Letterbox scale: preserve aspect ratio, fit within usable area
-                        final_scale = min(usable_w / full_bbox_w, usable_h / full_bbox_h) if (full_bbox_w > 0 and full_bbox_h > 0) else (usable_w / full_bbox_w)
-
-                        content_w = full_bbox_w * final_scale
-                        content_h = full_bbox_h * final_scale
-                        offset_x = ((usable_w - content_w) / 2)
-                        offset_y = ((usable_h - content_h) / 2)
-
-                        for stroke in cd.strokes:
-                            prev_x_pdf = None
-                            prev_y_pdf = None
-
-                            for p in stroke.points:
-                                nx = g.x + (g.w * 0.05) + offset_x + ((p.x - min_x) * final_scale)
-                                ny = g.y + (g.h * 0.05) + offset_y + ((max_y - p.y) * final_scale)
-
-                                if prev_x_pdf is not None:
-                                    self.pdf.line(prev_x_pdf, prev_y_pdf, nx, ny)
-
-                                prev_x_pdf = nx
-                                prev_y_pdf = ny
+                    # --- Draw Stroke Overlay (progressive or complete) ---
+                    if cell_obj.kind.startswith('stroke-') or cell_obj.kind == 'complete':
+                        self._draw_strokes_in_cell(cell_obj, g)
 
                     # --- Draw Reference Character (Black) ---
                     elif cell_obj.kind == 'reference':

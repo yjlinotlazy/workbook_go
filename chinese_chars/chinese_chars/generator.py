@@ -20,5 +20,5 @@ class WorkbookGenerator:
         loader = StrokeFileLoader()
         char_data_list = [loader.load(char) for char in config.chars]
 
-        # Build all characters at once — CharacterBuilder.build iterates internally
-        return CharacterBuilder.build(char_data_list)
+        # Pass mode + columns to CharacterBuilder
+        return CharacterBuilder.build(char_data_list, mode=config.mode, columns=config.columns)

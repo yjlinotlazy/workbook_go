@@ -92,10 +92,8 @@ def _validate_paper(paper: str) -> str:
 
 def _resolve_output(output_path: Path | None) -> Path:
     """Resolves the output file path with collision handling."""
-    if output_path is not None:
-        if output_path.exists():
-            return _find_unique_name(output_path)
-        return output_path  # user specified a new / non-existing path
+    if output_path is not None and output_path.exists():
+        return _find_unique_name(output_path)
     
     # Default filename: practice_YYYYMMDD_X.pdf
     today = date.today().strftime("%Y%m%d")

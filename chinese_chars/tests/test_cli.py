@@ -35,8 +35,8 @@ def test_parses_chinese_characters(capsys, monkeypatch):
         return b'%PDF-1.4 fake'
     
     def dummy_gen(*args):
-        from chinese_chars.models import Cell 
-        return [Cell(kind="blank", character_data=None)]
+        from chinese_chars.models import Cell
+        return [[Cell(kind="blank", character_data=None)]]
     
     import chinese_chars.renderer as r
     import chinese_chars.generator as g

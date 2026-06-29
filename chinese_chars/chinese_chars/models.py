@@ -22,6 +22,7 @@ class Config:
     columns: int = 3  # cells per row on the page
     paper_size: str = "us_letter"  # paper format ("a4" | "us_letter")
     font_size: int = 48  # reference character font size in pt
+    mode: int = 1  # practice mode (1=default overlay, 2=blank, 3=tracing)
 
 
 @dataclass(frozen=True)
@@ -46,8 +47,7 @@ class CharacterData:
 
     char: str  # the Unicode character, e.g. "永"
     strokes: list[Stroke]  # ordered strokes
-    full_bbox: tuple[float, float, float, float] | None = None  # (min_x, min_y, max_x, max_y) across ALL strokes — used for consistent stroke rendering
-    full_bbox: tuple[float, float, float, float] | None = None  # (min_x, min_y, max_x, max_y) all strokes together; used for consistent stroke rendering
+    full_bbox: tuple[float, float, float, float] | None = None  # (min_x, min_y, max_x, max_y) across ALL strokes; used for consistent stroke rendering
 
 
 @dataclass(frozen=True)
