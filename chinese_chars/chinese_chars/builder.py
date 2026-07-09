@@ -2,7 +2,7 @@
 
 Loops over every character and produces cell sequences for each practice mode:
 
-Mode 1 (overlay+tracing): [ref, stroke-1..N, complete...xk] -> fixed-width per char 
+Mode 1 (overlay+tracing): [ref, stroke-1..N, complete...xk] -> fixed-width per char
                           where k = max(0, columns - ref - strokes)
 Mode 2 (stroke-blank)   : [ref, stroke-1..N]             -> layout pads with blanks
 Mode 3 (tracing-only)   : [ref, complete...x(N)]         -> no progressive overlay
@@ -52,43 +52,65 @@ class CharacterBuilder:
             full_bbox = None
 
         # 1. Reference Cell (black, all strokes visible) - common to all modes
-        ref_cell = Cell(
-            kind="reference",
-            character_data=char_data,
-            stroke_index=None
-        )
+        ref_cell = Cell(kind="reference", character_data=char_data, stroke_index=None)
 
         cells = [ref_cell]
 
         if mode == 1:
             # Overlay + tracing: ref -> progressive strokes -> completions (if any room)
-            cells.extend(CharacterBuilder._progressive_strokes(char_data, char_strokes, full_bbox))
-            
+            cells.extend(
+                CharacterBuilder._progressive_strokes(
+                    char_data, char_strokes, full_bbox
+                )
+            )
+
             # Add traceable grids only if there's leftover column space
             if columns is not None:
-                n_remaining = columns - 1 - char_strokes  # leave ref cell open
+                n_remaining = (
+                    columns - 1 - char_strokes
+                ) % columns  # leave ref cell open
                 if n_remaining > 0:
                     complete_data = CharacterData(
-                        char=char_data.char, 
-                        strokes=char_data.strokes,  
-                        full_bbox=full_bbox
+                        char=char_data.char,
+                        strokes=char_data.strokes,
+                        full_bbox=full_bbox,
                     )
-                    cells.extend([Cell(kind="complete", character_data=complete_data, stroke_index=None)] * n_remaining)
+                    cells.extend(
+                        [
+                            Cell(
+                                kind="complete",
+                                character_data=complete_data,
+                                stroke_index=None,
+                            )
+                        ]
+                        * n_remaining
+                    )
 
         elif mode == 2:
             # Stroke -> Blank: ref + progressive only (layout pads with blanks via pad_chars)
-            cells.extend(CharacterBuilder._progressive_strokes(char_data, char_strokes, full_bbox))
+            cells.extend(
+                CharacterBuilder._progressive_strokes(
+                    char_data, char_strokes, full_bbox
+                )
+            )
 
         elif mode == 3:
             # Tracing-only: ref + complete grids directly (no step-by-step overlay)
             complete_data = CharacterData(
-                char=char_data.char, 
-                strokes=char_data.strokes,  
-                full_bbox=full_bbox
+                char=char_data.char, strokes=char_data.strokes, full_bbox=full_bbox
             )
             if columns is not None and char_strokes > 0:
-                cells.extend([Cell(kind="complete", character_data=complete_data, stroke_index=None)] * (columns - 1))
-        
+                cells.extend(
+                    [
+                        Cell(
+                            kind="complete",
+                            character_data=complete_data,
+                            stroke_index=None,
+                        )
+                    ]
+                    * (columns - 1)
+                )
+
         return cells
 
     @staticmethod
@@ -98,13 +120,9 @@ class CharacterBuilder:
         for i in range(1, total_strokes + 1):
             cumulative_points = char_data.strokes[:i]
             layer_data = CharacterData(
-                char=" ", 
-                strokes=cumulative_points,
-                full_bbox=full_bbox
+                char=" ", strokes=cumulative_points, full_bbox=full_bbox
             )
-            strokes_cells.append(Cell(
-                kind=f"stroke-{i}",
-                character_data=layer_data,
-                stroke_index=i
-            ))
+            strokes_cells.append(
+                Cell(kind=f"stroke-{i}", character_data=layer_data, stroke_index=i)
+            )
         return strokes_cells

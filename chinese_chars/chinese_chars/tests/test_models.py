@@ -23,6 +23,7 @@ def test_config_defaults():
     config = Config(chars="test")
     
     assert config.chars == "test"
-    assert config.columns == 3
+    assert config.copies == 3
+    assert config.columns == 5
     assert config.paper_size == "us_letter"
     assert config.font_size == 48

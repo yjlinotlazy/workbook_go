@@ -10,7 +10,7 @@ Architecture:
 5. build: ties it all together, handling page boundaries
 """
 
-from chinese_chars.models import Cell, Config, Page, Row, Workbook, CellGeometry
+from chinese_chars.models import Cell, CellGeometry, Config, Page, Row, Workbook
 
 
 # Standard millimeter equivalents for common print margins
@@ -35,11 +35,11 @@ class LayoutEngine:
 
         # Paper dimensions in millimeters (FPDF native standard)
         if config.paper_size == "us_letter":
-            self.paper_w = 215.9   # 8.5 inches
-            self.paper_h = 279.4   # 11.0 inches
+            self.paper_w = 215.9  # 8.5 inches
+            self.paper_h = 279.4  # 11.0 inches
         else:
-            self.paper_w = 210.0   # A4 width
-            self.paper_h = 297.0   # A4 height
+            self.paper_w = 210.0  # A4 width
+            self.paper_h = 297.0  # A4 height
 
         # Standard layout margins (e.g., 0.5 inch or 13mm)
         self.margin = _inch_to_mm(0.5)
@@ -66,8 +66,9 @@ class LayoutEngine:
 
         for cells in char_blocks:
             n = len(cells)
-            if n < self.config.columns:
-                for _ in range(self.config.columns - n):
+            remaining = (self.config.columns - n) % self.config.columns
+            if remaining:
+                for _ in range(remaining):
                     cells.append(blank_cell)
         return char_blocks
 
@@ -78,7 +79,9 @@ class LayoutEngine:
             flat.extend(block)
         return flat
 
-    def cells_to_rows(self, flat_cells: list[Cell], page_start_row: int = 0) -> tuple[Row, ...]:
+    def cells_to_rows(
+        self, flat_cells: list[Cell], page_start_row: int = 0
+    ) -> tuple[Row, ...]:
         """Turn a flat list of cells into Row objects with geometry attached.
 
         Slices `flat_cells` into chunks of self.config.columns, attaches cell
@@ -109,16 +112,18 @@ class LayoutEngine:
                 new_geo = CellGeometry(
                     x=x,
                     y=y % self.available_height,
-                    w=step_w - 4,   # 2mm padding on each side for Tian Ge box
+                    w=step_w - 4,  # 2mm padding on each side for Tian Ge box
                     h=step_w - 4,
                 )
 
-                row_cells.append(Cell(
-                    kind=raw_cell.kind,
-                    character_data=raw_cell.character_data,
-                    stroke_index=raw_cell.stroke_index,
-                    geometry=new_geo,
-                ))
+                row_cells.append(
+                    Cell(
+                        kind=raw_cell.kind,
+                        character_data=raw_cell.character_data,
+                        stroke_index=raw_cell.stroke_index,
+                        geometry=new_geo,
+                    )
+                )
             rows.append(Row(index=row_idx, cells=tuple(row_cells)))
             row_idx += 1
 
@@ -129,11 +134,12 @@ class LayoutEngine:
         cells_per_page = self.config.columns * self.rows_per_page
         if len(flat_cells) >= cells_per_page:
             return flat_cells
-
-        remaining = cells_per_page - len(flat_cells)
-        cols = self.config.columns
+        remaining = (cells_per_page - len(flat_cells)) % cells_per_page
         for _ in range(remaining):
-            flat_cells.append(Cell(kind="blank", character_data=None, stroke_index=None))
+            flat_cells.append(
+                Cell(kind="blank", character_data=None, stroke_index=None)
+            )
+
         return flat_cells
 
     def build(self, char_blocks: list[list[Cell]]) -> tuple[Page, ...]:
@@ -172,11 +178,11 @@ class LayoutEngine:
             global_row_offset = page_idx * rows_per_page
             current_page_rows = self.cells_to_rows(flat_padded, global_row_offset)
 
-            pages.append(Page(
-                number=page_idx + 1,
-                rows=tuple(current_page_rows),
-                width_cells=cols
-            ))
+            pages.append(
+                Page(
+                    number=page_idx + 1, rows=tuple(current_page_rows), width_cells=cols
+                )
+            )
 
         return tuple(pages)
 
@@ -191,12 +197,29 @@ def layout_cells(config: Config, char_blocks: list[list[Cell]]) -> Workbook:
       - Pad each character block to columns blanks per pad_chars()
       - Group chars by pages_per_row → flatten into page-level cells
       - cells_to_rows() → attach mm coordinates → construct Page objects
+      - Repeat each page N times based on config.copies for practice
     """
     engine = LayoutEngine(config)
-    pages = engine.build(char_blocks)
+    base_pages = engine.build(char_blocks)
 
-    return Workbook(
-        title=config.chars,
-        config=config,
-        pages=pages  # tuple[Page, ...] with full geometry
-    )
+    # Apply copies: repeat each base page with sequential page numbers
+    print(config.copies)
+    copied_pages: list[Page] = []
+    for page in base_pages:
+        for _ in range(config.copies):
+            new_rows = tuple(Row(index=row.index, cells=row.cells) for row in page.rows)
+            copied_pages.append(
+                Page(
+                    number=0,  # Will be renumbered below
+                    rows=new_rows,
+                    width_cells=page.width_cells,
+                )
+            )
+
+    # Renumber all pages sequentially
+    for i, page in enumerate(copied_pages):
+        copied_pages[i] = Page(
+            number=i + 1, rows=page.rows, width_cells=page.width_cells
+        )
+
+    return Workbook(title=config.chars, config=config, pages=tuple(copied_pages))

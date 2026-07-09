@@ -19,7 +19,8 @@ class Config:
     """Generator configuration for workbook creation."""
 
     chars: str  # characters to practice, e.g. "一二三"
-    columns: int = 3  # cells per row on the page
+    copies: int = 3  # number of identical practice pages
+    columns: int = 5  # cells per row on the page
     paper_size: str = "us_letter"  # paper format ("a4" | "us_letter")
     font_size: int = 48  # reference character font size in pt
     mode: int = 1  # practice mode (1=default overlay, 2=blank, 3=tracing)
