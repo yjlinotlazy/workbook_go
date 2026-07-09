@@ -3,11 +3,11 @@
 Converts a sequence of char cell blocks into Pages and Rows based on configuration.
 
 Architecture:
-1. pad_chars: each char block → padded to config.columns blank cells at end
-2. flatten: all char blocks (per page) merged into flat sequence
-3. pad_rows: fill incomplete last row with blanks
+1. pad_chars: each char block → padded to whole rows
+2. flatten: all char blocks merged into flat sequence
+3. paginate: split by actual row count, not character count
 4. cells_to_rows: flat list → Row objects with geometry
-5. build: ties it all together, handling page boundaries
+5. build: ties it all together
 """
 
 from chinese_chars.models import Cell, CellGeometry, Config, Page, Row, Workbook
@@ -89,14 +89,14 @@ class LayoutEngine:
 
         Args:
             flat_cells: all cells for one page, in writing order
-            page_start_row: global row offset (for multi-page workbooks)
+            page_start_row: page-local row offset
         """
         cols = self.config.columns
         step_w = self.cell_size_mm
         gap = 2  # mm gap between adjacent Tian Ge boxes
 
         rows: list[Row] = []
-        row_idx = page_start_row  # start from page_offset for correct coord
+        row_idx = page_start_row
 
         for chunk_start in range(0, len(flat_cells), cols):
             batch = flat_cells[chunk_start : chunk_start + cols]
@@ -111,7 +111,7 @@ class LayoutEngine:
 
                 new_geo = CellGeometry(
                     x=x,
-                    y=y % self.available_height,
+                    y=y,
                     w=step_w - 4,  # 2mm padding on each side for Tian Ge box
                     h=step_w - 4,
                 )
@@ -129,28 +129,22 @@ class LayoutEngine:
 
         return tuple(rows)
 
-    def _pad_to_full_page(self, flat_cells: list[Cell]) -> list[Cell]:
-        """Pad flat cell list to fill the entire page grid (full last rows)."""
+    def _paginate_rows(self, flat_cells: list[Cell]) -> list[list[Cell]]:
+        """Split a flat, row-aligned cell list into page-sized cell chunks."""
         cells_per_page = self.config.columns * self.rows_per_page
-        if len(flat_cells) >= cells_per_page:
-            return flat_cells
-        remaining = (cells_per_page - len(flat_cells)) % cells_per_page
-        for _ in range(remaining):
-            flat_cells.append(
-                Cell(kind="blank", character_data=None, stroke_index=None)
-            )
-
-        return flat_cells
+        return [
+            flat_cells[start : start + cells_per_page]
+            for start in range(0, len(flat_cells), cells_per_page)
+        ]
 
     def build(self, char_blocks: list[list[Cell]]) -> tuple[Page, ...]:
         """Generate full page sequence from character cell blocks.
 
-        Flow per page:
-          1. Select chars for this page (rows_per_page chars)
-          2. pad_chars → each char block padded to config.columns blanks
-          3. flatten → single flat list for the page
-          4. _pad_to_full_page → fill incomplete last rows with blanks
-          5. cells_to_rows → Row objects with mm coordinates
+        Flow:
+          1. pad_chars → each char block padded to full rows
+          2. flatten → single flat list
+          3. paginate by actual rows_per_page
+          4. cells_to_rows → Row objects with page-local coordinates
 
         Args:
             char_blocks: list[list[Cell]] — one inner list per character
@@ -160,23 +154,13 @@ class LayoutEngine:
             return ()
 
         cols = self.config.columns
-        rows_per_page = self.rows_per_page
         pages: list[Page] = []
 
-        for page_idx, start in enumerate(range(0, len(char_blocks), rows_per_page)):
-            # Step 1: Select all character blocks for this logical page
-            page_char_blocks = char_blocks[start : start + rows_per_page]
+        padded = self.pad_chars(char_blocks)
+        flat = self.flatten(padded)
 
-            # Step 2 & 3: Pad each char block → flatten
-            padded = self.pad_chars(page_char_blocks)
-            flat = self.flatten(padded)
-
-            # Step 4: Fill incomplete last rows with blank cells
-            flat_padded = self._pad_to_full_page(flat)
-
-            # Step 5: Convert to Row objects with geometry
-            global_row_offset = page_idx * rows_per_page
-            current_page_rows = self.cells_to_rows(flat_padded, global_row_offset)
+        for page_idx, page_cells in enumerate(self._paginate_rows(flat)):
+            current_page_rows = self.cells_to_rows(page_cells, 0)
 
             pages.append(
                 Page(
@@ -195,7 +179,7 @@ def layout_cells(config: Config, char_blocks: list[list[Cell]]) -> Workbook:
 
     Flow:
       - Pad each character block to columns blanks per pad_chars()
-      - Group chars by pages_per_row → flatten into page-level cells
+      - Split rows into pages according to physical page capacity
       - cells_to_rows() → attach mm coordinates → construct Page objects
       - Repeat each page N times based on config.copies for practice
     """
@@ -203,7 +187,6 @@ def layout_cells(config: Config, char_blocks: list[list[Cell]]) -> Workbook:
     base_pages = engine.build(char_blocks)
 
     # Apply copies: repeat each base page with sequential page numbers
-    print(config.copies)
     copied_pages: list[Page] = []
     for page in base_pages:
         for _ in range(config.copies):

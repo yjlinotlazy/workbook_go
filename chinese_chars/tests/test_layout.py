@@ -36,3 +36,21 @@ def test_layout_empty_input():
 
     pages = engine.build([])
     assert len(pages) == 0
+
+
+def test_layout_overflow_rows_start_new_page_without_loopback():
+    config = Config(chars="测试", columns=5)
+    engine = LayoutEngine(config)
+
+    char_blocks = [_make_cells(config.columns) for _ in range(engine.rows_per_page + 1)]
+    pages = engine.build(char_blocks)
+
+    assert len(pages) == 2
+    assert len(pages[0].rows) == engine.rows_per_page
+    assert len(pages[1].rows) == 1
+
+    first_page_y_values = [row.cells[0].geometry.y for row in pages[0].rows]
+    assert len(first_page_y_values) == len(set(first_page_y_values))
+
+    assert pages[0].rows[0].cells[0].geometry.y == engine.margin
+    assert pages[1].rows[0].cells[0].geometry.y == engine.margin

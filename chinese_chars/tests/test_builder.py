@@ -81,15 +81,16 @@ def test_build_mode_1_few_strokes():
     assert len(result[0]) == COLS
 
 
-def test_build_mode_1_many_strokes_eq_columns():
-    """Mode 1: if strokes >= columns, no completions fit."""
+def test_build_mode_1_many_strokes_wraps_and_fills_row():
+    """Mode 1 fills the remaining row after strokes wrap past one line."""
     data = _make_char_data("三", 5)  # 5 strokes = columns exactly (ref takes slot 1, leaves none)
     result = CharacterBuilder.build([data], mode=1, columns=COLS)
     
     assert result[0][0].kind == "reference"
     complete_cells = [c for c in result[0] if c.kind == "complete"]
-    # ref + 5 strokes = 6 cells (stays >= columns since no completions fit)
-    assert len(complete_cells) == 0
+    # ref + 5 strokes = 6 cells, then 4 complete cells fill the second row.
+    assert len(complete_cells) == COLS - 1
+    assert len(result[0]) == COLS * 2
 
 
 def test_build_mode_1_exactly_at_column_limit():
