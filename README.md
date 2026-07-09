@@ -1,65 +1,22 @@
 # Workbook Go
 
-Workbook Go is a printable worksheet generator for kids.
+Workbook Go 是一个可定制的儿童练字纸生成器。现在主要用于生成汉字练习 PDF：输入要练习的汉字，程序会按照笔顺生成田字格、参考字、笔画提示和描写练习格。
 
-当前主要功能是生成汉字练字 PDF：输入一组汉字，程序会按笔顺数据生成带田字格的练习纸。每个字可以包含参考字、逐笔叠加提示、描红格和空白练习格。
+## 可以做什么
 
-## Features
+- 生成可打印的汉字练字 PDF。
+- 每行格子数量可调，格子会随之变大或变小。
+- 支持 `us_letter` 和 `a4` 两种纸张。
+- 支持三种练习模式：
+  - 模式 1：参考字 + 逐笔提示 + 描写格。
+  - 模式 2：参考字 + 逐笔提示 + 空白练习格。
+  - 模式 3：参考字 + 描写格，不显示逐笔过程。
+- 可设置每份练习页重复几次。
+- 不指定输出文件名时，会自动生成带日期的 PDF 文件名。
 
-- Generate printable Chinese handwriting worksheets as PDF.
-- Support US Letter and A4 paper.
-- Configure grid density by setting the number of cells per row.
-- Choose one of three practice modes:
-  - Mode 1: reference character, progressive stroke cells, then tracing cells.
-  - Mode 2: reference character, progressive stroke cells, then blank cells from layout padding.
-  - Mode 3: reference character plus tracing cells only.
-- Repeat generated pages with `--copies`.
-- Automatically create a dated output filename when `--output` is not provided.
-- Load stroke data from the repository's internal JSON format, including generated MakeMeAHanzi imports.
+## 安装
 
-## Repository Layout
-
-```text
-.
-├── README.md
-├── tests/
-└── chinese_chars/
-    ├── pyproject.toml
-    ├── cli.py
-    ├── chinese_chars/
-    │   ├── builder.py
-    │   ├── config.py
-    │   ├── generator.py
-    │   ├── layout.py
-    │   ├── models.py
-    │   ├── renderer.py
-    │   └── stroke.py
-    ├── data/
-    │   └── generated/characters/
-    ├── scripts/
-    │   └── import_makemeahanzi.py
-    ├── ARCHITECTURE.md
-    ├── DATA_PIPELINE.md
-    └── Requirements.md
-```
-
-The `chinese_chars/` directory is the Python project. Run install, CLI, and tests from that directory unless noted otherwise.
-
-## Requirements
-
-- Python 3.11 or newer
-- `fpdf2`
-- A CJK font available to the PDF renderer
-
-The renderer currently tries common Linux font paths such as:
-
-- `/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc`
-- `/usr/share/fonts/TTF/uming.ttc`
-- `/usr/share/fonts/TTF/ukai.ttc`
-
-Reference characters are rendered with `Ukai`, so install a compatible CJK font if PDF generation fails while setting the font.
-
-## Installation
+需要 Python 3.11 或更新版本。
 
 ```bash
 cd chinese_chars
@@ -68,125 +25,113 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-For development tools with a tool that supports dependency groups:
+生成 PDF 需要系统里有可用的中文字体。如果运行时报字体相关错误，请安装常见中文字体，例如 Noto CJK、Uming 或 Ukai。
 
-```bash
-uv sync --dev
-```
+## 基本用法
 
-Or install the development tools directly with pip:
-
-```bash
-python -m pip install pytest ruff pre-commit
-```
-
-## Usage
-
-Generate a worksheet for several characters:
+生成“一二三四五”的练习纸，每行 5 个格子，并保存到指定文件：
 
 ```bash
 cd chinese_chars
 chinese-chars 一二三四五 -n 5 -o output/practice.pdf
 ```
 
-The same command can also be run through the module entry point:
+也可以这样运行：
 
 ```bash
 python -m chinese_chars 一二三四五 -n 5 -o output/practice.pdf
 ```
 
-If `--output` is omitted, the CLI writes to `practice_YYYYMMDD.pdf` in the current directory. If that file already exists, it appends a numeric suffix such as `practice_YYYYMMDD_1.pdf`.
-
-### Options
+如果不写 `-o`，程序会在当前目录生成类似这样的文件：
 
 ```text
-chars                 Characters to practice, for example 一二三
--n, -c, --density    Number of grid cells per row. Default: 5
--p, --paper          Paper size: us_letter or a4. Default: us_letter
--m, --mode           Practice mode: 1, 2, or 3. Default: 1
--k, --copies         Number of copies for each generated page. Default: 2
--o, --output         Output PDF path
--v, --version        Print CLI version
+practice_20260709.pdf
 ```
 
-Examples:
-
-```bash
-chinese-chars 永 -m 1 -n 5 -k 2 -o output/yong.pdf
-chinese-chars 春夏秋冬 --paper a4 --density 6 --mode 3
-```
-
-## Practice Modes
-
-Mode 1 is the default. For each character, it creates a reference cell, progressive stroke cells, and then fills any remaining cells in that character block with complete tracing cells.
-
-Mode 2 creates a reference cell and progressive stroke cells. The layout engine pads the rest of the row or page with blank practice grids.
-
-Mode 3 creates a reference cell followed by complete tracing cells, without step-by-step stroke progression.
-
-All modes use Tianzige-style grid cells with an outer border and center guide lines.
-
-## Data
-
-Worksheet generation uses internal character JSON files under:
+如果同名文件已经存在，会自动改成：
 
 ```text
-chinese_chars/data/generated/characters/
-chinese_chars/data/
+practice_20260709_1.pdf
+practice_20260709_2.pdf
 ```
 
-The loader prefers `data/generated/characters/<char>.json` and falls back to `data/<char>.json`.
+## 常用例子
 
-Internal JSON is the runtime source of truth. External datasets are converted first and are not read by normal workbook generation. See `chinese_chars/DATA_PIPELINE.md` for the full data pipeline.
-
-To regenerate data from MakeMeAHanzi, update the raw dataset path in `scripts/import_makemeahanzi.py` if needed, then run:
+生成默认练习纸：
 
 ```bash
-cd chinese_chars
-python scripts/import_makemeahanzi.py
+chinese-chars 永
 ```
 
-## Architecture
+每行 6 个格子，使用 A4 纸：
 
-The generation pipeline is intentionally one-way:
+```bash
+chinese-chars 春夏秋冬 -n 6 --paper a4
+```
+
+生成描写格模式，不显示逐笔提示：
+
+```bash
+chinese-chars 山川日月 --mode 3
+```
+
+每页重复 3 份：
+
+```bash
+chinese-chars 一二三 -k 3
+```
+
+## 参数说明
 
 ```text
-CLI
-  -> WorkbookGenerator
-  -> CharacterBuilder
-  -> LayoutEngine
-  -> PdfRenderer
-  -> PDF file
+chars                 要练习的汉字，例如 一二三
+-n, -c, --density    每行格子数，默认 5
+-p, --paper          纸张大小：us_letter 或 a4，默认 us_letter
+-m, --mode           练习模式：1、2、3，默认 1
+-k, --copies         每份练习页重复次数，默认 2
+-o, --output         输出 PDF 文件路径
+-v, --version        显示版本号
 ```
 
-The main layers are:
+## 练习模式
 
-- `cli.py`: parses command-line arguments, validates inputs, writes the PDF.
-- `stroke.py`: loads internal stroke JSON into renderer-independent models.
-- `builder.py`: turns each character into reference, stroke, complete, and blank cells.
-- `layout.py`: arranges cells into rows and pages with physical coordinates.
-- `renderer.py`: draws grids, reference characters, and stroke paths into a PDF.
-- `models.py`: defines the workbook data model shared by the pipeline.
+### 模式 1：参考字 + 笔画提示 + 描写格
 
-More detail is documented in `chinese_chars/ARCHITECTURE.md`.
-
-## Tests
-
-Run the test suite from the Python project directory:
+这是默认模式。每个字先显示一个黑色参考字，然后按笔顺逐格增加笔画，后面的格子显示完整浅灰字形，适合照着描。
 
 ```bash
-cd chinese_chars
-python -m pytest tests --import-mode=importlib
+chinese-chars 永 --mode 1
 ```
 
-Run a specific test file:
+### 模式 2：参考字 + 笔画提示 + 空白格
+
+每个字先显示参考字和逐笔提示，后面留空白田字格，适合已经熟悉字形后自己写。
 
 ```bash
-python -m pytest tests/test_builder.py --import-mode=importlib
+chinese-chars 永 --mode 2
 ```
 
-The explicit import mode avoids pytest module-name collisions caused by the repository's duplicated `tests/` and `chinese_chars/tests/` file names.
+### 模式 3：参考字 + 描写格
 
-## Current Scope
+不显示逐笔过程，直接给参考字和完整浅灰字形，适合大量描写练习。
 
-Workbook Go currently focuses on Chinese handwriting worksheets. The code is structured so other worksheet types or renderers can be added later without changing the core workbook model.
+```bash
+chinese-chars 永 --mode 3
+```
+
+## 格子和排版
+
+每个格子是田字格样式。外框和中心辅助线会打印出来，方便孩子对齐结构。
+
+`-n` 或 `--density` 决定每行多少个格子：
+
+- 数字越小，格子越大。
+- 数字越大，一页能放的内容越多。
+
+如果一个字的笔画很多，占用超过一行，内容会继续排到下一行；如果当前页放不下，会自动进入下一页。
+
+## 注意事项
+
+- 只能生成仓库里已有笔画数据的汉字。
+- 输出目录需要已经存在；例如使用 `-o output/practice.pdf` 时，请先确保 `output/` 目录存在。
+- PDF 渲染依赖系统中文字体。缺字体时，参考字可能无法正常显示。
